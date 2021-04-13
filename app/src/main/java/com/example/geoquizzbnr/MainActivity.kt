@@ -1,7 +1,10 @@
 package com.example.geoquizzbnr
 
+import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityOptions
 import android.content.Intent
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -13,13 +16,13 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProviders
 
-private const val TAG ="MainActivity"
-private const val KEY_INDEX ="index"
+private const val TAG = "MainActivity"
+private const val KEY_INDEX = "index"
 private const val REQUEST_CODE_CHEAT = 0
 
 class MainActivity : AppCompatActivity() {
 
-    private val quizViewModel : QuizViewModel by lazy {
+    private val quizViewModel: QuizViewModel by lazy {
         ViewModelProviders.of(this).get(QuizViewModel::class.java)
     }
 
@@ -29,12 +32,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cheatButton: Button
     private lateinit var questionTextView: TextView
 
+    @SuppressLint("RestrictedApi")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate(Bundle?): called")
         setContentView(R.layout.activity_main)
 
-        val currentIndex = savedInstanceState?.getInt(KEY_INDEX,0) ?: 0
+        val currentIndex = savedInstanceState?.getInt(KEY_INDEX, 0) ?: 0
         quizViewModel.currentIndex = currentIndex
 
         trueButton = findViewById(R.id.true_button)
@@ -56,11 +60,17 @@ class MainActivity : AppCompatActivity() {
             updateQuestion()
         }
 
-        cheatButton.setOnClickListener {
+        cheatButton.setOnClickListener { view ->
             //start Activity
             val answerIsTrue = quizViewModel.currentQuestionAnswer
-            val intent = CheatActivity.newIntent(this@MainActivity,answerIsTrue)
-            startActivityForResult(intent, REQUEST_CODE_CHEAT)
+            val intent = CheatActivity.newIntent(this@MainActivity, answerIsTrue)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val option =
+                    ActivityOptions.makeClipRevealAnimation(view, 0, 0, view.width, view.height)
+                startActivityForResult(intent, REQUEST_CODE_CHEAT, option.toBundle())
+            } else {
+                startActivityForResult(intent, REQUEST_CODE_CHEAT)
+            }
         }
 
         updateQuestion()
@@ -69,11 +79,11 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        if(requestCode != Activity.RESULT_OK){
+        if (requestCode != Activity.RESULT_OK) {
             return
         }
-        if(requestCode == REQUEST_CODE_CHEAT){
-            quizViewModel.isCheater = data?.getBooleanExtra(EXTRA_ANSWER_SHOWN,false) ?: false
+        if (requestCode == REQUEST_CODE_CHEAT) {
+            quizViewModel.isCheater = data?.getBooleanExtra(EXTRA_ANSWER_SHOWN, false) ?: false
         }
     }
 
@@ -95,7 +105,7 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         Log.i(TAG, "onSaveInstanceState: ")
-        outState.putInt(KEY_INDEX,quizViewModel.currentIndex)
+        outState.putInt(KEY_INDEX, quizViewModel.currentIndex)
     }
 
     override fun onStop() {
@@ -113,7 +123,7 @@ class MainActivity : AppCompatActivity() {
         questionTextView.setText(questionTextResId)
     }
 
-    private fun checkAnswer(userAnswer: Boolean){
+    private fun checkAnswer(userAnswer: Boolean) {
         val correctAnswer = quizViewModel.currentQuestionAnswer
 
         val messageResId = when {
@@ -122,6 +132,6 @@ class MainActivity : AppCompatActivity() {
             else -> R.string.incorrect_toast
         }
 
-        Toast.makeText(this,messageResId,Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show()
     }
 }
